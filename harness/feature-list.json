@@ -1,0 +1,325 @@
+{
+  "project": "reportaya-api",
+  "description": "Backend en Go (Fiber) con arquitectura Clean / Modular Monolith + DDD. Plataforma ciudadana anónima de reportes de infraestructura urbana (ReportaYa.app).",
+  "rules": {
+    "one_feature_at_a_time": true,
+    "require_tests_to_close": true,
+    "require_approved_spec_to_implement": true,
+    "valid_status": [
+      "pending",
+      "discovery",
+      "readyForSpec",
+      "specReady",
+      "inProgress",
+      "implemented",
+      "documented",
+      "reviewed",
+      "audited",
+      "done",
+      "blocked"
+    ],
+    "sdd_required_when": "feature has \"sdd\": true",
+    "id_scheme": "El campo `id` refleja el orden de construcción por dependencias (1 = primero). El arreglo `features` está ordenado de forma DESCENDENTE por id (18 primero, 1 al final). `dependsOn` referencia ids.",
+    "acceptances_note": "`acceptances` son criterios de aceptación preliminares a nivel concepto; el spec_author los refinará en requirements.md y el reviewer los trazará contra tests."
+  },
+  "features": [
+    {
+      "id": 18,
+      "code": "G2",
+      "epic": "G — Operador",
+      "title": "Exportación consolidada (Excel/PDF)",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [4, 16],
+      "description": "Endpoint autenticado (operador) que exporta reportes consolidados a Excel/PDF para entrega física a dependencias. Reutiliza filtros de consulta y agregados de estadísticas.",
+      "acceptances": [
+        "Solo un usuario con rol operador autenticado (JWT/RBAC) puede exportar; sin auth se responde 401/403.",
+        "El export acepta los mismos filtros que la consulta del mapa (zona, estado, categoría, rango de fechas).",
+        "Cada registro exportado incluye folio, categoría, ubicación, estado y fecha de creación.",
+        "Se ofrece al menos un formato (Excel o PDF) descargable correctamente.",
+        "La exportación no expone datos personales ni el creator_token en claro."
+      ]
+    },
+    {
+      "id": 17,
+      "code": "G1",
+      "epic": "G — Operador",
+      "title": "Moderación de operador (spam/ofensivo + cola de abuso + forzar estado)",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2, 14],
+      "description": "Rol moderador interno (JWT/RBAC existente). Permite ocultar/eliminar reportes spam u ofensivos, atender la cola de 'reportar abuso' y forzar transiciones de estado. No es gobierno ni ciudadano.",
+      "acceptances": [
+        "Solo usuarios con rol moderador acceden a las acciones de moderación; el resto recibe 403.",
+        "El operador puede ocultar o eliminar un reporte spam u ofensivo.",
+        "El operador puede listar y resolver la cola de reportes auto-ocultos por abuso (D5).",
+        "El operador puede forzar una transición de estado del reporte.",
+        "Toda acción de moderación queda registrada en el outbox de auditoría."
+      ]
+    },
+    {
+      "id": 16,
+      "code": "H1",
+      "epic": "H — Auditoría pública",
+      "title": "Estadísticas agregadas públicas",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2, 12],
+      "description": "Endpoint público de solo lectura con conteos por estado/categoría/zona, tasa de resolución y tiempos promedio a reparación. Base de la 'auditoría social'.",
+      "acceptances": [
+        "Un endpoint público de solo lectura devuelve conteos de reportes por estado, categoría y zona.",
+        "Expone tasa de resolución y tiempo promedio desde 'abierto' hasta 'resuelto'.",
+        "No expone datos personales, IP ni creator_token.",
+        "Los agregados excluyen reportes ocultos por moderación.",
+        "Los valores reflejan el estado actual de los datos al momento de la consulta."
+      ]
+    },
+    {
+      "id": 15,
+      "code": "E1",
+      "epic": "E — Historias",
+      "title": "Feed de historias (reportes últimas 24 h)",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2, 4],
+      "description": "Vista efímera tipo 'historias': lista los reportes creados en las últimas 24 h ordenados por recencia. Es una consulta, no almacenamiento extra; el reporte persiste en el mapa hasta resolverse.",
+      "acceptances": [
+        "Un endpoint devuelve los reportes con created_at dentro de las últimas 24 h, ordenados de más reciente a más antiguo.",
+        "El reporte permanece en el mapa aunque salga del feed de historias; no se borra al cumplir 24 h.",
+        "El feed excluye reportes ocultos por moderación.",
+        "La ventana de 24 h se calcula sobre created_at del reporte."
+      ]
+    },
+    {
+      "id": 14,
+      "code": "D5",
+      "epic": "D — Interacción ciudadana",
+      "title": "Reportar abuso (auto-oculta al cruzar umbral)",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2],
+      "description": "Botón ciudadano de 'reportar abuso' por token anónimo. Al cruzar un umbral de señales, el reporte se auto-oculta y entra a la cola de moderación del operador.",
+      "acceptances": [
+        "Un ciudadano puede reportar abuso sobre un reporte usando su token de navegador, una sola vez por reporte (dedup por hash).",
+        "Al cruzar el umbral configurado de señales de abuso, el reporte se auto-oculta del mapa y consultas públicas.",
+        "Un reporte auto-oculto entra a la cola de moderación del operador (G1).",
+        "Reportar abuso no requiere cuenta ni persiste datos personales."
+      ]
+    },
+    {
+      "id": 13,
+      "code": "D4",
+      "epic": "D — Interacción ciudadana",
+      "title": "Panel 'mis reportes' por token",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2, 8],
+      "description": "Seguimiento sin cuentas: endpoint que devuelve el estado de los reportes asociados al token de navegador (creator_token_hash). El permalink público sirve como página de estado individual.",
+      "acceptances": [
+        "Un endpoint devuelve el estado y folio de los reportes asociados al creator_token_hash recibido.",
+        "No devuelve reportes asociados a otros tokens.",
+        "No requiere cuenta y el token no se persiste ni se expone en claro.",
+        "Para cada reporte propio se devuelve su estado actual y el enlace a su permalink."
+      ]
+    },
+    {
+      "id": 12,
+      "code": "D3",
+      "epic": "D — Interacción ciudadana",
+      "title": "Confirmar resolución + reapertura",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2, 11],
+      "description": "Botón 'Ya lo arreglaron' (token anónimo). Al cruzar un umbral N de confirmaciones, el reporte pasa a 'resuelto'. Un re-reporte del mismo punto lo reabre. Estado percibido, auto-corregible.",
+      "acceptances": [
+        "Un ciudadano puede confirmar 'ya lo arreglaron' con su token, una sola vez por reporte (dedup por hash).",
+        "Al alcanzar el umbral N de confirmaciones, el reporte transiciona a estado 'resuelto'.",
+        "Un re-reporte del mismo punto sobre un reporte 'resuelto' lo reabre (estado 'reabierto').",
+        "Cada transición de estado queda registrada con su marca de tiempo.",
+        "Las confirmaciones no requieren cuenta ni persisten datos personales."
+      ]
+    },
+    {
+      "id": 11,
+      "code": "D1",
+      "epic": "D — Interacción ciudadana",
+      "title": "Apoyar / re-reportar",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2],
+      "description": "Voto de apoyo anónimo (token de navegador, dedup por hash) que sube prioridad/visibilidad de un reporte existente en vez de duplicarlo.",
+      "acceptances": [
+        "Un ciudadano puede apoyar un reporte existente, incrementando su contador de apoyos.",
+        "Un mismo token de navegador no puede apoyar dos veces el mismo reporte (dedup por hash).",
+        "El apoyo no requiere cuenta ni persiste datos personales.",
+        "El contador de apoyos de un reporte es consultable."
+      ]
+    },
+    {
+      "id": 10,
+      "code": "D2",
+      "epic": "D — Interacción ciudadana",
+      "title": "Detección de duplicados (sugerir, no bloquear)",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2, 4],
+      "description": "Al crear un reporte, el backend detecta reportes cercanos de la misma categoría y los devuelve como sugerencia ('¿lo apoyas?'). No bloquea la creación. Requiere índice geoespacial.",
+      "acceptances": [
+        "Al crear un reporte se buscan reportes cercanos de la misma categoría dentro de un radio y ventana de tiempo configurables.",
+        "Si existen candidatos, la respuesta los incluye como sugerencias para apoyar.",
+        "La creación del reporte NO se bloquea: el usuario puede crear igualmente.",
+        "La búsqueda de cercanía usa un índice geoespacial (no un scan completo de la tabla)."
+      ]
+    },
+    {
+      "id": 9,
+      "code": "C1",
+      "epic": "C — Evidencia / difusión",
+      "title": "Generador de tarjeta de evidencia FB (folio + render async)",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2, 3],
+      "description": "Render asíncrono (outbox + worker, patrón de internal/audit) de una imagen estandarizada con folio único, lista para compartir en Facebook. Se guarda en object storage y se expone su URL al estar lista.",
+      "acceptances": [
+        "Al crear un reporte se encola la generación de la tarjeta de forma asíncrona (outbox), sin bloquear el POST.",
+        "Un worker renderiza una imagen con folio, categoría, ubicación y datos del reporte.",
+        "La tarjeta se almacena en object storage S3-compatible y su URL queda asociada al reporte.",
+        "Si el render falla, se reintenta sin perder el reporte.",
+        "El reporte queda creado aunque la tarjeta aún no esté lista."
+      ]
+    },
+    {
+      "id": 8,
+      "code": "C2",
+      "epic": "C — Evidencia / difusión",
+      "title": "Permalink público + Open Graph dinámico",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2],
+      "description": "Página pública por reporte con meta-tags Open Graph dinámicos para previews en redes. Funciona también como página de estado del reporte (seguimiento sin cuentas).",
+      "acceptances": [
+        "Cada reporte tiene una URL pública estable (permalink) basada en su folio.",
+        "La página sirve meta-tags Open Graph dinámicos (título, descripción e imagen) para preview en redes.",
+        "La página muestra el estado actual del reporte, sirviendo de seguimiento sin cuenta.",
+        "Un folio inexistente devuelve 404."
+      ]
+    },
+    {
+      "id": 7,
+      "code": "B2",
+      "epic": "B — Anti-abuso / anonimato",
+      "title": "Verificación server-side de Cloudflare Turnstile",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2],
+      "description": "Middleware que valida el token de Turnstile contra el endpoint de Cloudflare antes de aceptar acciones de escritura (crear reporte, apoyar). Mitiga bots con captcha invisible.",
+      "acceptances": [
+        "Las acciones de escritura (crear reporte, apoyar) exigen un token Turnstile.",
+        "El token se valida server-side contra el endpoint de verificación de Cloudflare.",
+        "Token ausente o inválido → respuesta 4xx sin crear ni modificar el recurso.",
+        "El secret de Turnstile se lee de configuración, no del código."
+      ]
+    },
+    {
+      "id": 6,
+      "code": "B1",
+      "epic": "B — Anti-abuso / anonimato",
+      "title": "Rate limiting real (CF-Connecting-IP, store persistente)",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2],
+      "description": "Limita peticiones por IP real (leída de CF-Connecting-IP detrás de Cloudflare) con store persistente. Revisa/extiende internal/security/ratelimit. La IP no se persiste como dato personal.",
+      "acceptances": [
+        "El límite se calcula por IP real obtenida de CF-Connecting-IP cuando el tráfico viene de Cloudflare.",
+        "Al superar el máximo configurado (p.ej. 3 reportes/hora) se responde 429.",
+        "El contador sobrevive a reinicios del servicio (store persistente, no memoria pura).",
+        "La IP no se persiste como dato personal; se usa solo como clave efímera/hasheada."
+      ]
+    },
+    {
+      "id": 5,
+      "code": "B3",
+      "epic": "B — Anti-abuso / anonimato",
+      "title": "API Key estática + CORS estricto",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [],
+      "description": "Middleware transversal que exige una API Key estática (inyectada por el frontend) y aplica una política de CORS estricta sobre los orígenes permitidos.",
+      "acceptances": [
+        "Las peticiones sin API Key válida se rechazan con 401/403.",
+        "Solo los orígenes en la lista permitida pasan la política CORS; el resto se bloquea.",
+        "La API Key y los orígenes permitidos se leen de configuración, no del código.",
+        "Las peticiones preflight (OPTIONS) se manejan correctamente."
+      ]
+    },
+    {
+      "id": 4,
+      "code": "A4",
+      "epic": "A — Núcleo de reportes",
+      "title": "Consulta de reportes para el mapa",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2],
+      "description": "GET de reportes para pintar el mapa: filtro por bounding box geográfico, estado y categoría. Optimizado para lectura rápida.",
+      "acceptances": [
+        "El endpoint acepta un filtro por bounding box geográfico (lat/lng min y max).",
+        "Acepta filtro por estado y por categoría.",
+        "Devuelve solo los campos necesarios para el mapa, sin datos sensibles ni creator_token.",
+        "Excluye reportes ocultos por moderación.",
+        "Aplica paginación o límite para evitar respuestas masivas."
+      ]
+    },
+    {
+      "id": 3,
+      "code": "A3",
+      "epic": "A — Núcleo de reportes",
+      "title": "Sanitización + almacenamiento de imagen (S3, sin blur)",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [2],
+      "description": "Recibe la foto, valida por magic bytes y tamaño, re-codifica destruyendo EXIF (incluido GPS), maneja HEIC y la sube a object storage S3-compatible. La BD guarda solo la key/URL. Sin blur automático en MVP.",
+      "acceptances": [
+        "La imagen se valida por magic bytes (no por Content-Type) y se rechaza si no es un formato soportado.",
+        "Se rechaza si supera el tamaño máximo configurado y se protege contra decompression bombs.",
+        "La imagen se re-codifica destruyendo todo el EXIF, incluidas las coordenadas GPS.",
+        "HEIC se soporta, o en su defecto se rechaza explícitamente con un mensaje claro.",
+        "La imagen se sube a object storage S3-compatible y la BD guarda solo la key/URL, nunca el binario.",
+        "No queda copia del binario original con EXIF en disco ni en BD."
+      ]
+    },
+    {
+      "id": 2,
+      "code": "A2",
+      "epic": "A — Núcleo de reportes",
+      "title": "Crear reporte (POST /api/reports)",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [1],
+      "description": "Dominio 'reports' + creación: categoría, ubicación (lat/lng aprox), descripción, city/zona (multi-tenant-ready) y creator_token_hash. Geo-cerca rechaza coordenadas fuera de Nuevo Laredo. Genera folio único.",
+      "acceptances": [
+        "POST /api/reports crea un reporte con categoría válida, ubicación (lat/lng), descripción y city/zona.",
+        "Se rechaza con 4xx si la categoría no existe o la ubicación cae fuera de la geo-cerca de Nuevo Laredo.",
+        "Cada reporte recibe un folio único y legible.",
+        "Se persiste el creator_token_hash (hash del token de navegador); nunca el token en claro ni datos personales.",
+        "El estado inicial del reporte es 'abierto'.",
+        "La respuesta no expone la IP ni metadatos del cliente."
+      ]
+    },
+    {
+      "id": 1,
+      "code": "A1",
+      "epic": "A — Núcleo de reportes",
+      "title": "Catálogo de categorías",
+      "status": "pending",
+      "sdd": true,
+      "dependsOn": [],
+      "description": "Catálogo de categorías de reporte (baches, luminarias, fugas de agua, basura, …). Base de la que dependen la creación y los filtros del mapa.",
+      "acceptances": [
+        "El catálogo incluye al menos: baches, luminarias apagadas, fugas de agua y acumulación de basura.",
+        "Un endpoint de solo lectura devuelve la lista de categorías activas.",
+        "Cada categoría tiene un identificador estable y un nombre legible.",
+        "Una categoría inactiva no aparece en la consulta pública pero no se elimina físicamente."
+      ]
+    }
+  ]
+}

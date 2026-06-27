@@ -44,6 +44,3 @@ coverage.out
 # Archivos de backup
 *.bak
 *.backup.env
-
-/.claude
-/harness

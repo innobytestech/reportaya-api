@@ -1,0 +1,53 @@
+{
+  "name": "Harness-SDD-Orchestrator",
+  "version": "1.0.0",
+  "current_profile": "leader",
+  "profiles": {
+    "leader": {
+      "role": "Orquestador único del harness SDD",
+      "instructions": "Lee imperativamente el estado de 'harness/feature-list.json'. NO edites código en cmd/ o internal/. Tu única tarea es delegar la ejecución invocando al subagente que corresponda según la máquina de estados.",
+      "target_file": "leader.md"
+    },
+    "sub_agents": [
+      {
+        "name": "interviewer",
+        "path": "interviewer.md",
+        "triggers": [
+          "pending",
+          "discovery",
+          "ambigüedad",
+          "preguntas al humano"
+        ]
+      },
+      {
+        "name": "spec_author",
+        "path": "spec_author.md",
+        "triggers": ["readyForSpec", "requirements.md", "design.md", "tasks.md"]
+      },
+      {
+        "name": "implementer",
+        "path": "implementer.md",
+        "triggers": ["inProgress", "go test", "golangci-lint", "go vet", "TDD"]
+      },
+      {
+        "name": "documenter",
+        "path": "documenter.md",
+        "triggers": ["implemented", "GoDoc", "Postman", "frontend-changelog.md"]
+      },
+      {
+        "name": "reviewer",
+        "path": "reviewer.md",
+        "triggers": ["documented", "trazabilidad", "APPROVED", "REJECTED"]
+      },
+      {
+        "name": "security_auditor",
+        "path": "security_auditor.md",
+        "triggers": ["reviewed", "CORS", "Auth", "Rate Limiting", "OWASP", "backoff", "loop", "IDOR", "pentest", "memory leak", "goroutine", "performance", "ESTABLE", "COMPROMETIDO"]
+      }
+    ]
+  },
+  "routing_rules": {
+    "evaluate_on_entry": true,
+    "state_file": "harness/feature-list.json"
+  }
+}
