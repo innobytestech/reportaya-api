@@ -1,0 +1,21 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: reportaya-api
+    command: ["go", "run", "github.com/air-verse/air@latest", "-c", ".air.toml"]
+    ports:
+      - "8080:8080"
+
+    # Load secrets and other configs from .env
+    env_file:
+      - .env
+
+    # This is required to reach the host machine from inside the container
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    volumes:
+      - ./:/app

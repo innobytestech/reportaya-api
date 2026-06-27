@@ -1,0 +1,109 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+    - gosec
+    - bodyclose
+    - nilerr
+    - errorlint
+    - exhaustive
+    - gocyclo
+
+linters-settings:
+  gosec:
+    excludes:
+      - G104 # duplicate of errcheck
+      - G304 # file path from variable (intentional in asset loader)
+  exhaustive:
+    default-signifies-exhaustive: true
+  gocyclo:
+    min-complexity: 70
+
+issues:
+  exclude-use-default: false
+  exclude-rules:
+    # Justificación: archivos *_test.go contienen fixtures y mocks que
+    # intencionalmente ignoran errores / usan permisos laxos / cuerpos HTTP
+    # de aserción que se cierran en helpers — gosec/errcheck/bodyclose son
+    # ruido neto en tests.
+    - path: _test\.go
+      linters:
+        - gosec
+        - errcheck
+        - bodyclose
+        - errorlint
+
+    # Justificación: en handlers/services el patrón `defer x.Close()` sobre
+    # objetos sin estado de escritura (rows.Close, resp.Body.Close, file.Close
+    # ya leído) no requiere capturar el error — la conexión/cuerpo ya fueron
+    # consumidos y el error de cierre no es accionable. Mantener if-return aquí
+    # rompe legibilidad sin aportar robustez.
+    - path: internal/.*\.go
+      text: "Error return value of `.*\\.Close` is not checked"
+      linters:
+        - errcheck
+
+    # Justificación: comandos one-shot bajo cmd/ (preview/perf-smoke/excel-preview/
+    # rbac-check/quality-check/inventory-reconcile) imprimen errores con
+    # log.Fatal/log.Printf y no son llamados como librería — envolver con %w no
+    # aporta valor y `defer rows.Close()` / `godotenv.Load()` sin check es
+    # idiomático para utilidades CLI de un solo proceso.
+    - path: cmd/.*\.go
+      linters:
+        - errorlint
+        - errcheck
+
+    # Justificación: builders/factories de fachada bajo facade_adapters.go o
+    # generadores de Excel/reporte exponen constructores que el wiring DI
+    # consume por interfaz — `unused` produce falsos positivos sobre métodos
+    # llamados a través de la interfaz que el linter no resuelve.
+    - path: internal/domain/.*/services/facade_adapters\.go
+      linters:
+        - unused
+    - path: internal/domain/invoicing-core/services/facturapi_receipt_adapter\.go
+      linters:
+        - unused
+    - path: internal/domain/invoicing-core/services/pos_receipt_email_service\.go
+      linters:
+        - unused
+    - path: internal/domain/invoicing-core/services/receipt_facade_service\.go
+      text: "func `isNonRetryableReceiptSourceError` is unused"
+      linters:
+        - unused
+    - path: internal/domain/product-media-core/services/worker\.go
+      text: "func `pickBestItemImage` is unused"
+      linters:
+        - unused
+    - path: internal/document/services/pdf_theme\.go
+      text: "func `formatThemeDate` is unused"
+      linters:
+        - unused
+
+    # Justificación: helpers de Excel (excelize SetSheetView/SetPageLayout/
+    # SetColWidth/SetRowHeight/SetCellStyle/SetCellValue/MergeCell/NewSheet/
+    # SetSheetName) devuelven error solo en condiciones extremas (hoja
+    # inexistente, índice inválido) que no aplican porque el código siempre
+    # crea las hojas antes — capturar y envolver cada llamada llenaría el
+    # código de boilerplate sin valor.
+    - path: internal/domain/inventory-core/services/executive_excel_generator\.go
+      text: "Error return value of `f\\.(SetSheetView|SetPageLayout|SetColWidth|SetRowHeight|SetCellStyle|SetCellValue|MergeCell|NewSheet|SetSheetName)`"
+      linters:
+        - errcheck
+
+    # Justificación: pkg/validate/validator.go usa switch sobre reflect.Kind
+    # con un default explícito que retorna error — el resto de los kinds no
+    # son validables por el validador genérico de números y caen al default.
+    # Añadir 13 cases vacíos sería ruido neto.
+    - path: pkg/validate/validator\.go
+      linters:
+        - exhaustive

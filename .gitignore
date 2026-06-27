@@ -1,0 +1,49 @@
+# Archivos de configuración sensibles
+.env
+.env.*
+!.env.example
+.env.local
+.env.production
+.env.staging
+
+# Archivos de log
+.log
+*.log
+
+# Archivos temporales y de build
+tmp/
+*.tmp
+*.temp
+
+# Ejecutables
+*.exe
+*.exe~
+.exe.stackdump
+.stackdump
+
+# Scripts de bash
+*.bat
+
+# Archivos de IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Archivos de dependencias de Go
+vendor/
+
+# Archivos de test coverage
+coverage.out
+*.cover
+
+# Archivos de backup
+*.bak
+*.backup.env
+
+/.claude
+/harness
