@@ -310,12 +310,12 @@
       "code": "A1",
       "epic": "A — Núcleo de reportes",
       "title": "Catálogo de categorías",
-      "status": "pending",
+      "status": "audited",
       "sdd": true,
       "dependsOn": [],
       "description": "Catálogo de categorías de reporte (baches, luminarias, fugas de agua, basura, …). Base de la que dependen la creación y los filtros del mapa.",
       "acceptances": [
-        "El catálogo incluye al menos: baches, luminarias apagadas, fugas de agua y acumulación de basura.",
+        "El catálogo incluye al menos: baches, luminarias apagadas, fugas de agua, acumulación de basura, autos chatarra, parques descuidados, lugares vandalizados y señales de tránsito.",
         "Un endpoint de solo lectura devuelve la lista de categorías activas.",
         "Cada categoría tiene un identificador estable y un nombre legible.",
         "Una categoría inactiva no aparece en la consulta pública pero no se elimina físicamente."

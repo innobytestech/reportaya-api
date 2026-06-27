@@ -92,9 +92,28 @@ estadísticas · 17 G1 moderación · 18 G2 exportación.
 
 ## Próximo paso
 
-Arrancar el flujo SDD por la **Feature id 1 (A1 — Catálogo de categorías)**:
-`leader` → muta a `interviewer` para resolver ambigüedades antes de spec.
-Pendiente de luz verde del humano para iniciar.
+**Feature id 1 (A1 — Catálogo de categorías) en `audited` ⏸ (2026-06-27).**
+Flujo SDD completo recorrido hoy:
+`pending → discovery → readyForSpec → specReady (aprob. humano) → inProgress → implemented
+→ documented → reviewed → audited`.
+
+- Discovery (3 decisiones): seed estático solo-lectura · slug textual + UUID interno ·
+  metadatos slug+nombre+icono+color. Catálogo **ampliado a 12 categorías** por petición humana.
+- Specs: `harness/specs/01-categorias/{discovery,requirements (R1–R6),design,tasks (T1–T13)}.md`.
+- Implementación: dominio `internal/domain/category/**`, ruta `GET /api/categories` (pública,
+  solo lectura), migración `000002_categories` + seed 12, tests TDD. `go build/vet/test` VERDE.
+- Documenter: GoDoc + `docs/api/categories.md` + `harness/frontend/01-categorias-changelog.md`.
+- Reviewer: **APROBADO** (`harness/progress/review-categorias.md`), trazabilidad R↔tests OK.
+- Security auditor: **APROBADO**, sin bloqueantes (`harness/progress/audited-categorias.md`).
+  5 recomendaciones fast-follow (índice parcial, Cache-Control/ETag, validación CORS, bucket
+  rate-limit, test integración Postgres) — para B3/CI, no bloquean MVP.
+
+**⏸ PUERTA HUMANA FINAL:** se requiere aprobación del humano para cerrar a `done`.
+
+### Deuda separada (fuera del flujo SDD)
+`golangci-lint` reporta 3 errores PRE-EXISTENTES por CRLF en archivos del esqueleto NO tocados
+por esta feature (jwt / filevalidation / pgutil). Pendiente tarea de mantenimiento (normalizar
+finales de línea). Los archivos nuevos de A1 pasan el linter limpio.
 
 ---
 

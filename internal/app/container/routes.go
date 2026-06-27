@@ -16,6 +16,10 @@ func (ctn *Container) RegisterRoutes(app *fiber.App) {
 
 	api := app.Group("/api")
 
+	// Public: category catalog (no auth — R2; auth middleware will be added in B3).
+	categories := api.Group("/categories")
+	routes.RegisterCategories(categories, ctn.CategoryHandler)
+
 	// Authenticated group example: JWT + session-activity tracking + JSON guard.
 	// Replace/extend with real domain groups (admin, portal, ...) as needed.
 	trackActivity := apphttp.TrackActivity(

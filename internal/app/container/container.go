@@ -13,6 +13,9 @@ import (
 
 	"reportaya-api/internal/audit"
 	"reportaya-api/internal/config"
+	categoryHandlers "reportaya-api/internal/domain/category/handlers"
+	categoryRepos "reportaya-api/internal/domain/category/repositories"
+	categoryServices "reportaya-api/internal/domain/category/services"
 	"reportaya-api/internal/persistence/postgres"
 	"reportaya-api/internal/security/jwt"
 	"reportaya-api/internal/security/ratelimit"
@@ -42,6 +45,8 @@ type Container struct {
 	AuditEmitter *audit.Emitter
 	AuditWorker  *audit.Worker
 	AuditSink    audit.CloseableSink
+
+	CategoryHandler *categoryHandlers.CategoryHandler
 }
 
 // New builds the container from config and logger.
@@ -99,6 +104,11 @@ func New(cfg *config.Config, log *zerolog.Logger) (ctn *Container, err error) {
 		)
 	}
 
+	// Category domain wiring (public read-only catalog, no auth).
+	catRepo := categoryRepos.NewCategoryRepository(db.DB)
+	catSvc := categoryServices.NewCategoryService(catRepo)
+	catHandler := categoryHandlers.NewCategoryHandler(catSvc)
+
 	ctn = &Container{
 		Config:          cfg,
 		Log:             log,
@@ -115,6 +125,7 @@ func New(cfg *config.Config, log *zerolog.Logger) (ctn *Container, err error) {
 		AuditEmitter:    audit.NewEmitter(auditOutbox),
 		AuditWorker:     auditWorker,
 		AuditSink:       auditSink,
+		CategoryHandler: catHandler,
 	}
 	return ctn, nil
 }
